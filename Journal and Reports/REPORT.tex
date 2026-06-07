@@ -1,0 +1,150 @@
+\documentclass[conference]{IEEEtran}
+\IEEEoverridecommandlockouts
+
+% Essential packages for rendering, math, and formatting
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{algorithmic}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\usepackage{hyperref} % Fixes URL and email rendering issues
+
+\begin{document}
+
+\title{AETHER: Enhancing Lunar Permanently Shadowed Regions using Zero-Reference Deep Curve Estimation\\
+\thanks{Data provided by the ISRO Science Data Archive (ISDA) - Chandrayaan-2 OHRC.}
+}
+
+\author{
+\IEEEauthorblockN{1\textsuperscript{st} Aditya Khamitkar}
+\IEEEauthorblockA{\textit{Project AETHER} \\
+\textit{VIT Bhopal University}\\
+Email: adityakhamitkar@proton.me \\
+GitHub: \href{https://github.com/TechieSamosa}{TechieSamosa}}
+\and
+\IEEEauthorblockN{2\textsuperscript{nd} Tushar Jagatap}
+\IEEEauthorblockA{\textit{Project AETHER} \\
+\textit{VIT Bhopal University}\\
+Email: tusharjagannathjagatap2022@vitbhopal.ac.in \\
+GitHub: \href{https://github.com/TensorNaut}{TensorNaut}}
+\and
+\IEEEauthorblockN{3\textsuperscript{rd} Nitin Saini}
+\IEEEauthorblockA{\textit{Project AETHER} \\
+\textit{VIT Bhopal University}\\
+Email: nitinsaini2022@vitbhopal.ac.in \\
+GitHub: \href{https://github.com/promefeus}{promefeus}}
+}
+
+\maketitle
+
+\begin{abstract}
+The mapping of Permanently Shadowed Regions (PSRs) at the Lunar South Pole is critical for upcoming robotic and crewed missions, as these regions harbor volatile deposits such as water ice. The Orbiter High Resolution Camera (OHRC) aboard Chandrayaan-2 provides ultra-high resolution ($0.25$\,m/pixel) imagery, but PSRs remain effectively invisible in standard telemetry due to the extremely low signal-to-noise ratio of secondary scattered light. Classical enhancement requires stacking dozens of multi-temporal frames combined with stray-light models. In this paper, we propose AETHER, a single-frame pipeline utilizing a lightweight Convolutional Neural Network based on Zero-Reference Deep Curve Estimation (Zero-DCE). By employing a two-phase training curriculum—supervised synthetic adaptation followed by self-supervised fine-tuning on real PSR patches—we demonstrate that exposure adjustment curves can be learned without paired ground truth. Coupled with Non-Local Means (NLM) spatial denoising and dynamic tile blending, our pipeline achieves an SNR gain of \textbf{+86.38 dB} and successfully recovers topographic features such as craters and slopes within the Shackleton and Cabeus craters from a single image.
+\end{abstract}
+
+\begin{IEEEkeywords}
+Lunar PSR, Deep Learning, Image Enhancement, Zero-DCE, Chandrayaan-2, OHRC, Spatial Denoising
+\end{IEEEkeywords}
+
+\section{Introduction}
+The Lunar South Pole is the primary target for the Artemis program and international lunar exploration efforts due to the presence of Permanently Shadowed Regions (PSRs). These topographic depressions, typically deep crater floors, have not seen direct sunlight for billions of years, acting as cold traps for water ice and other volatiles \cite{horus2021}. 
+
+While orbital instruments like the Lunar Reconnaissance Orbiter Camera (LROC) and Chandrayaan-2's Orbiter High Resolution Camera (OHRC) pass over these regions, the only illumination inside a PSR comes from secondary scattered sunlight bouncing off the highly reflective surrounding crater rims. This secondary light is orders of magnitude weaker than direct sunlight, resulting in raw image data that is dominated by detector noise (typical SNR $< 1$) and appears completely black in standard calibration pipelines.
+
+Existing state-of-the-art approaches for PSR enhancement, such as the ESA HORUS pipeline, rely on stacking up to 70 multi-temporal images of the exact same target aligned via Digital Elevation Models (DEMs) to average out noise \cite{horus2021}. While highly effective, this method is computationally expensive, requires massive data archives, and is limited to targets with dense multi-temporal coverage.
+
+We propose a Deep Learning alternative: \textbf{AETHER}. By adapting the Zero-Reference Deep Curve Estimation (Zero-DCE) framework \cite{guo2020zero}, we dynamically estimate optimal pixel-wise exposure curves from a single frame. Because obtaining ground-truth "bright" images of a PSR is physically impossible, Zero-DCE's reliance on non-reference loss functions makes it uniquely suited for planetary science applications where paired data does not exist. 
+
+\section{Methodology}
+
+\subsection{Data Procurement and Preprocessing}
+Data was sourced from the ISRO PRADAN portal. We utilized three specific OHRC observations (resolution $0.25$\,m/pixel) targeting the floors of known PSR craters:
+\begin{itemize}
+    \item \textbf{Shackleton 1 \& 2}: Deep PSRs near 89.7$^{\circ}$S.
+    \item \textbf{Cabeus}: Mixed terrain (sunlit + shadow) near 86.0$^{\circ}$S.
+\end{itemize}
+
+Raw \texttt{.img} files (typically $101,000 \times 12,000$ pixels, $\sim 1.2$\,GB each) were parsed using \texttt{pds4-tools} and loaded directly into NumPy arrays. Because a GPU cannot process a 1.2 GB image at once, we developed a sliding-window patch extractor. This algorithm slides a $64 \times 64$ window across the massive image, checks the mean pixel brightness, and automatically categorizes the patches into \textit{psr} (dark) or \textit{sunlit} (bright) sets based on photometric thresholds. This generated over 38,000 consolidated training patches formatted into \texttt{.npy} arrays for rapid ingestion.
+
+\subsection{Model Architecture: Zero-DCE}
+Zero-DCE formulates image enhancement as an image-specific curve estimation problem. Instead of predicting pixel values directly (which often creates generative artifacts), it predicts a set of exposure adjustment curves. 
+
+The architecture is a lightweight 7-layer Convolutional Neural Network containing merely 69,608 parameters. It takes a single-channel grayscale patch and outputs 8 curve parameter maps, $A_n(x)$. The enhanced image is iteratively produced via the higher-order curve equation:
+\begin{equation}
+LE_{n}(x) = LE_{n-1}(x) + A_{n}(x)LE_{n-1}(x)(1 - LE_{n-1}(x))
+\end{equation}
+where $LE_0(x)$ is the input image and $n \in [1,8]$. This guarantees a monotonic mapping that stretches faint secondary light without blowing out the bright crater rims.
+
+\subsection{Two-Phase Training Curriculum}
+Because Zero-DCE was originally designed for Earth-based low-light photography, its standard non-reference losses fail to converge on the extreme noise floor of lunar PSRs. We implemented a rigorous two-phase training strategy to bridge this domain gap:
+
+\begin{enumerate}
+    \item \textbf{Phase 1 (Synthetic Adaptation):} We utilized the extracted sunlit OHRC patches and synthetically darkened them using a random darkening factor ($\gamma \in [0.02, 0.15]$). We then injected mixed Poisson-Gaussian noise to accurately simulate the OHRC sensor's noise floor. The model was trained in a supervised manner using an $L_1$ reconstruction loss to learn basic structural recovery.
+    
+    \item \textbf{Phase 2 (Self-Supervised Fine-Tuning):} The model was then fine-tuned on the actual, pitch-black PSR patches. In this phase, we deployed the classic Zero-DCE non-reference loss functions:
+    \begin{equation}
+    L_{total} = W_{spa}L_{spa} + W_{exp}L_{exp} + W_{tv}L_{tv}
+    \end{equation}
+    where $L_{spa}$ enforces spatial consistency by preserving the difference between neighboring regions, $L_{exp}$ controls the exposure level to a target mean ($E=0.6$), and $L_{tv}$ ensures illumination smoothness via Total Variation penalty on the curve maps. This phase adapts the curves specifically to the real OHRC noise distribution.
+\end{enumerate}
+
+\begin{figure}[htbp]
+\centerline{\includegraphics[width=\columnwidth]{../output/figures/training_loss.png}}
+\caption{Training curves across Phase 1 (Supervised, L1 Loss) and Phase 2 (Self-Supervised, Zero-Reference Loss).}
+\label{fig:loss}
+\end{figure}
+
+\subsection{Inference and Spatial Post-Processing}
+To process a full image for scientific analysis, we extract specific $4000 \times 5000$ crops of the crater floors. These are sliced into overlapping $512 \times 512$ tiles. The model enhances each tile, and they are blended back together using a 2D Bartlett window to prevent boundary seams.
+
+Because exposing the faint secondary signal inherently stretches and amplifies the underlying sensor noise, post-processing is mandatory. We apply a Non-Local Means (NLM) spatial denoiser to clean the amplified noise while preserving sharp topographical edges. This is followed by Contrast Limited Adaptive Histogram Equalization (CLAHE) and, optionally, an Inferno False-Color map to maximize the visual contrast of the physical topography.
+
+\section{Results and Analysis}
+
+\begin{figure*}[htbp]
+\centerline{\includegraphics[width=0.9\textwidth]{../output/enhanced/shackleton_01_final.png}}
+\caption{Visual enhancement of the Shackleton crater floor. Left: Raw OHRC telemetry (gamma stretched for visibility). Center: Raw Zero-DCE output demonstrating successful exposure adjustment but amplified noise. Right: Final AETHER output after NLM spatial denoising and CLAHE, revealing physical topography.}
+\label{fig:shackleton}
+\end{figure*}
+
+\subsection{Visual Analysis}
+Figure \ref{fig:shackleton} demonstrates the pipeline's capability on the Shackleton crater. The raw telemetry (left) contains no visible features to the naked eye. While the raw neural network output (center) successfully corrects the exposure without blowing out pixels, the detector noise dominates. The application of NLM denoising (right) successfully suppresses this noise, revealing distinct topological features, micro-craters, and potential slope variations on the PSR floor that are critical for evaluating landing site safety.
+
+\subsection{Quantitative Metrics}
+We evaluated the output using standard Image Quality Assessment (IQA) metrics:
+\begin{itemize}
+    \item \textbf{NIQE}: Natural Image Quality Evaluator (lower is better).
+    \item \textbf{BRISQUE}: Blind/Referenceless Image Spatial Quality Evaluator (lower is better).
+    \item \textbf{$\Delta$SNR}: Gain in Signal-to-Noise Ratio.
+\end{itemize}
+
+\begin{table}[htbp]
+\caption{Quantitative Evaluation on Shackleton PSR}
+\begin{center}
+\begin{tabular}{|c|c|c|c|}
+\hline
+\textbf{Method} & \textbf{NIQE} $\downarrow$ & \textbf{BRISQUE} $\downarrow$ & \textbf{$\Delta$SNR (dB)} $\uparrow$ \\
+\hline
+Raw OHRC (Stretched) & 8.42 & 41.25 & 0.0 \\
+\hline
+Zero-DCE (Raw) & 12.15 & 55.30 & +14.2 \\
+\hline
+AETHER (Zero-DCE + NLM) & \textbf{4.31} & \textbf{22.18} & \textbf{+86.38} \\
+\hline
+\end{tabular}
+\label{tab:metrics}
+\end{center}
+\end{table}
+
+\section{Conclusion}
+The AETHER pipeline successfully demonstrates that lightweight, single-frame Deep Learning models can extract scientifically valuable topographical data from the darkest regions of the Moon. By combining Zero-DCE's dynamic mathematical curve estimation with classical spatial denoising, we bypassed the need for massive multi-temporal image stacks and eliminated the risk of generative hallucination. Future work will investigate the fusion of these enhanced optical outputs with Dual-Frequency Synthetic Aperture Radar (DFSAR) data to provide sub-surface context and automate the detection of water-ice probabilities.
+
+\begin{thebibliography}{00}
+\bibitem{horus2021} Bickel, V. T., et al., "Peering into lunar permanently shadowed regions with deep learning," \textit{Nature Communications}, vol. 12, no. 1, p. 5607, 2021.
+\bibitem{guo2020zero} Guo, C., et al., "Zero-reference deep curve estimation for low-light image enhancement," \textit{Proc. IEEE/CVF CVPR}, 2020.
+\bibitem{isro2023} ISRO, \textit{Chandrayaan-2 OHRC Data Product Manual}, 2023.
+\end{thebibliography}
+
+\end{document}
