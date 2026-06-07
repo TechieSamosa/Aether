@@ -1,38 +1,67 @@
 # Contributing to AETHER 🌌
 
-Welcome to AETHER. This framework processes heavy multi-modal lunar data from Chandrayaan-2. Our primary engineering challenges involve managing massive datasets and training deep learning models in compute-constrained environments.
+Welcome to AETHER! We are thrilled to be a part of **GirlScript Summer of Code 2026**. 
+
+We are using Deep Learning to peer into the darkest places in our solar system: the Permanently Shadowed Regions (PSRs) of the Lunar South Pole. This guide outlines our technical roadmap, how our data pipeline works, our current engineering bottlenecks, and the strict academic rules governing this repository.
+
+---
 
 ## ⚠️ Academic Authorship & Intellectual Property Notice
-The core maintainers are currently preparing a formal scientific research paper based on the AETHER framework. 
+The core maintainers are currently preparing a formal scientific research paper based on the AETHER framework. By contributing to this repository, you acknowledge and agree to the following:
 
-By contributing to this repository, you acknowledge and agree to the following:
-*   **Publication Acknowledgements:** External contributions (such as data scrapers, pipeline optimizations, bug fixes, and tooling) will be formally recognized in the **Acknowledgements** section of any resulting academic publications. 
-*   **Co-Authorship:** Academic co-authorship is strictly reserved for the core research team. 
-*   **Repository Recognition:** Contributors who make significant, impactful engineering contributions (excluding minor typo fixes or basic README changes) will be explicitly recognized in the project's `README.md` contributors section. GitHub will also automatically track you as a repository contributor.
-
-## 🎯 What We Need Help With (GSSoC '26)
-We have a vast amount of lunar data but limited compute power. We need contributors who can help us move data efficiently and optimize our Python pipelines.
-
-**What you CAN work on:**
-*   **Data Ingestion:** Writing robust Python scripts to scrape/download bulk data from ISRO's archives safely and reliably.
-*   **Memory Optimization:** Refactoring our PyTorch `DataLoader` classes to load image patches dynamically from disk rather than crashing RAM.
-*   **Code Quality:** Adding type hinting, docstrings, and writing unit tests (pytest).
-*   **Optional C++ Optimizations:** If you are highly skilled in C++, we welcome PRs that port heavy bottleneck functions (like geospatial tensor stacking) to `libtorch` or C++ OpenCV.
-
----
+* **Publication Acknowledgements:** External contributions (such as data scrapers, pipeline optimizations, bug fixes, and tooling) will be formally recognized in the **Acknowledgements** section of any resulting academic publications. 
+* **Co-Authorship:** Academic co-authorship is strictly reserved for the core research team (Aditya, Tushar, and Nitin). 
+* **Repository Recognition:** Contributors who make significant, impactful engineering contributions will be explicitly recognized in the project's `README.md` contributors section.
 
 ### 🛑 The Research Red Line
-Do not alter the fundamental mathematical architecture, loss functions, or network topology of the GAN/SSL models in the `src/` directory. These files are strictly locked for our ongoing research, and any Pull Requests modifying the core math will be rejected.
+Do not alter the fundamental mathematical architecture, loss functions, or network topology of the GAN/SSL models in the `src/models/` directory. These files are strictly locked for our ongoing research, and any Pull Requests modifying the core math will be rejected. 
 
-**Suggestions via Issues:** We welcome theoretical suggestions and architectural ideas via GitHub Issues. The core research team retains full discretion to review, accept, or reject these proposals.
-
-**Agreement:** Please note that even if a theoretical suggestion is adopted and implemented by the team, it does not qualify the suggester for academic co-authorship. By submitting any issue, comment, or Pull Request to this repository, you automatically agree to these terms.
+*(Note: We welcome theoretical suggestions via GitHub Issues. However, even if a suggested issue is highly impactful and implemented by the core team, it does not grant the suggester academic co-authorship).*
 
 ---
 
-## 🛠️ How to Contribute
-1. **Fork & Clone:** Fork the repo and set up your local environment.
-2. **Claim an Issue:** Look for issues tagged `good first issue` or `help wanted`. Comment to be assigned.
-3. **Branch:** Create a branch (`feature/your-feature`).
-4. **Code:** Write clean, memory-efficient code.
-5. **PR:** Submit your Pull Request explaining exactly what you optimized or fixed.
+## 🗺️ Part 1: Technical Roadmap & How AETHER Works
+
+To contribute effectively, you need to understand how we source and process our data.
+
+### 1. How We Source Our Data (The PRADAN Portal)
+Our primary data source is the **Chandrayaan-2 Orbiter High Resolution Camera (OHRC)** ($0.25$ meters/pixel).
+1.  We use the [ISRO PRADAN Map Browse](https://chmapbrowse.issdc.gov.in) interface.
+2.  We target the floors of known PSR craters (e.g., Shackleton, Cabeus). 
+3.  We download the **Calibrated Product ZIP**, which contains the raw `.img` file (usually ~1.2 GB) and the `.xml` PDS4 label.
+
+### 2. How the Pipeline Processes Images
+Working with 1.2 Billion pixel planetary images requires a specialized pipeline:
+* **Data Ingestion:** We use `pds4-tools` to parse metadata and load raw `.img` binaries into NumPy arrays. 
+* **Patch Extraction:** We use a sliding-window algorithm to extract 64x64 patches, automatically categorizing them into `psr` (dark) or `sunlit` (bright) to avoid overloading the GPU.
+* **The Model:** We utilize a Zero-Reference Deep Curve Estimation (Zero-DCE) approach. Instead of predicting pixels directly, it predicts exposure curves to stretch the faint secondary light hidden in the shadows.
+* **Inference & Denoising:** Enhanced tiles are stitched back together. We apply Non-Local Means (NLM) spatial denoising to clean up amplified sensor noise before mapping.
+
+---
+
+## 🎯 Part 2: What We Need Help With (GSSoC '26)
+
+We have a vast amount of lunar data but limited compute power. We need contributors who can help us move data efficiently and optimize our Python pipelines.
+
+**We are actively seeking Pull Requests for:**
+
+* **Data Automation (Web Scraping):** PRADAN downloads are currently manual. We need Python scripts (using `requests`, `BeautifulSoup`, or `Selenium`) to automate downloading the massive `.zip` products based on a list of coordinates.
+* **Memory Optimization:** We are running out of RAM. We need help refactoring our PyTorch `DataLoader` classes to dynamically load image patches from the disk using `rasterio` windowed reading, rather than loading the whole image at once.
+* **GIS Integration & Map Stitching:** AETHER outputs enhanced image strips. We need scripts using `GDAL` or `Rasterio` to read the embedded spatial metadata (`geometry.csv`) and stitch these overlapping tiles back into a single, cohesive GeoTIFF map.
+* **Code Quality & Testing:** Adding strict Python type hinting, writing Google-style docstrings, and building unit tests using `pytest` for our data ingestion functions.
+* **Optional C++ Optimizations:** If you are highly skilled in C++, we welcome PRs that port heavy bottleneck functions (like geospatial tensor stacking) to `libtorch` or C++ OpenCV.
+
+---
+
+## 🛠️ Part 3: How to Contribute
+
+Ready to write some code? Here is the standard workflow:
+
+1.  **Fork & Clone:** Fork the repository to your GitHub account and clone it to your local machine.
+2.  **Find an Issue:** Check the **Issues** tab. Look for tags like `good first issue`, `help wanted`, or `gssoc-26`.
+3.  **Claim it:** Comment on the issue asking to be assigned. **Do not start working until you are assigned.**
+4.  **Create a Branch:** Create a new branch for your feature (`git checkout -b feature/your-feature-name`).
+5.  **Write Clean Code:** Ensure your code is memory-efficient and well-documented.
+6.  **Submit a PR:** Push your branch to your fork and submit a Pull Request to our `main` branch. Provide a clear description of what you optimized or fixed.
+
+We review PRs frequently. Please be patient, respectful, and welcome to the team!
