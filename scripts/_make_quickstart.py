@@ -47,18 +47,13 @@ cells.append(nbformat.v4.new_code_cell(
     "print(f'Running on: {device}')"
 ))
 
-# ── Cell 3: Code – Download Sample Patch ──────────────────────────────────────
+# ── Cell 3: Code – Load Sample Patch ──────────────────────────────────────────
 cells.append(nbformat.v4.new_code_cell(
-    "# Download a tiny sample OHRC patch for testing\n"
-    "SAMPLE_URL = 'https://dummyurl.com/sample_patch.npy'\n"
-    "SAMPLE_PATH = 'sample_patch.npy'\n"
+    "# Load the tiny sample OHRC patch bundled with the repository\n"
+    "SAMPLE_PATH = '../data/samples/sample_patch.npy'\n"
     "\n"
     "if not os.path.exists(SAMPLE_PATH):\n"
-    "    print('Downloading sample patch...')\n"
-    "    urllib.request.urlretrieve(SAMPLE_URL, SAMPLE_PATH)\n"
-    "    print('Done!')\n"
-    "else:\n"
-    "    print('Sample patch already exists.')\n"
+    "    raise FileNotFoundError(f'Could not find {SAMPLE_PATH}. Make sure you are running this from the notebooks/ directory.')\n"
     "\n"
     "# Load the patch\n"
     "patch = np.load(SAMPLE_PATH)  # Expected shape: (64, 64), float32, range [0, 1]\n"
