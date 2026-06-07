@@ -1,69 +1,21 @@
-                             Comprehensive Intellectual Property License Agreement
-                        Copyright © 2025 Aditya Sachin Khamitkar and other Contributors
-                                            All Rights Reserved
-This agreement governs the use, access, and handling of all materials (the “Work”) created, authored, or otherwise owned by Aditya Sachin Khamitkar. The Work includes but is not limited to research papers, data, models, code, methodologies, designs, and associated documentation files. By accessing, using, or interacting with the Work in any form, you agree to comply fully with the following terms and conditions.
+                      MIT License
 
-1. OWNERSHIP AND ATTRIBUTION
-1.1 The Work is the exclusive property of Aditya Sachin Khamitkar and is protected under international copyright and applicable intellectual property laws.
+        Copyright (c) 2026 Aditya Sachin Khamitkar
 
-1.2 All intellectual property rights, including but not limited to copyrights, trademarks, patents, and trade secrets, are retained solely by the author.
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-1.3 Access or use of the Work does not grant you any ownership, license, or other rights, whether explicit or implied, except as expressly permitted in this agreement.
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
 
-1.4 If the author uses or references materials owned by others, such sources will be explicitly acknowledged. However, the derived Work remains the author's property unless otherwise stated.
-
-
-2. USAGE RESTRICTIONS
-Unless prior written permission is granted by the author, you are prohibited from the following actions:
-2.1 Copying, modifying, merging, publishing, distributing, sublicensing, or selling the Work or any derivative thereof.
-
-2.2 Reverse-engineering, decompiling, disassembling, or otherwise attempting to access the source code, methodologies, or underlying structure of the Work.
-
-2.3 Sharing, distributing, publishing, or disclosing the Work, in whole or in part, including data, models, code, or documentation, to any third party.
-
-2.4 Using the Work for any commercial purpose or monetizing it in any form.
-
-
-
-3. ACCESS AND CONFIDENTIALITY
-3.1 Access to the Work is restricted and may only be granted by explicit authorization from the author.
-
-3.2 If granted access, you agree to:
-
-Maintain strict confidentiality and prevent unauthorized access.
-Refrain from sharing access credentials or materials related to the Work with third parties.
-
-
-
-4. PERMITTED USE
-4.1 You may view and analyze the Work solely for academic or non-commercial research purposes under the following conditions:
-
-Proper attribution to Aditya Sachin Khamitkar is mandatory for any derived insights or results.
-Publication or presentation of any derived results requires explicit, written permission from the author.
-
-
-5. NO WARRENTIS AND LIMITATION OF LIABLITY
-5.1 The Work is provided “AS IS,” without warranty of any kind, express or implied, including but not limited to warranties of merchantability, fitness for a particular purpose, and non-infringement.
-
-5.2 The author is not liable for any damages, including but not limited to direct, indirect, incidental, consequential, or special damages, arising from or in connection with the Work.
-
-
-6. ENFORCEMENT AND REMEDIES
-6.1 Unauthorized use, reproduction, or distribution of the Work constitutes a violation of copyright law and this agreement. Violations may result in legal action, including but not limited to claims for damages, injunctions, and penalties.
-
-6.2 You agree to indemnify and hold harmless Aditya Sachin Khamitkar against any claims, damages, or liabilities arising from your breach of this agreement.
-
-
-7. MODIFICATION AND TERMINATION OF LICENSE
-7.1 The author reserves the right to modify, update, or terminate this license at any time. Continued access or use of the Work after modifications signifies acceptance of the updated terms.
-
-7.2 The author may revoke access to the Work at their sole discretion for any violation of this agreement or any other reason.
-
-
-8. GOVERNING LAW AND JURISDICTION
-This agreement is governed by and construed in accordance with the laws of the jurisdiction where the author resides. All disputes arising from this agreement are subject to the exclusive jurisdiction of the courts in that jurisdiction.
-
-9. ENTIRE AGREEMENT
-This agreement constitutes the entire understanding between you and the author regarding the Work and supersedes all prior agreements or understandings related to the same.
-
-BY ACCESSING OR USING THE WORK, YOU ACKNOWLEDGE THAT YOU HAVE READ, UNDERSTOOD, AND AGREED TO THE TERMS OF THIS LICENSE.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
