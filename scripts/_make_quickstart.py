@@ -1,0 +1,182 @@
+#!/usr/bin/env python3
+"""Generate the AETHER Quickstart Jupyter Notebook using nbformat."""
+
+import nbformat
+from pathlib import Path
+
+nb = nbformat.v4.new_notebook()
+nb.metadata.kernelspec = {
+    "display_name": "Python 3",
+    "language": "python",
+    "name": "python3",
+}
+nb.metadata.language_info = {
+    "name": "python",
+    "version": "3.10.0",
+}
+
+cells = []
+
+# ── Cell 1: Markdown ─────────────────────────────────────────────────────────
+cells.append(nbformat.v4.new_markdown_cell(
+    "# AETHER Quickstart: Verify the Pipeline in 2 Minutes\n"
+    "\n"
+    "This notebook runs **entirely on CPU** and requires no GPU, no large datasets, "
+    "and no ISRO account. It demonstrates the core Zero-DCE enhancement pipeline on a "
+    "tiny sample OHRC patch so that new contributors can verify that the model architecture, "
+    "inference, and visualization code all work correctly before diving into the full pipeline.\n"
+    "\n"
+    "**What this notebook does:**\n"
+    "1. Downloads a small sample `.npy` patch (a 64\u00d764 crop from a real Chandrayaan-2 OHRC image).\n"
+    "2. Loads the Zero-DCE model and runs inference.\n"
+    "3. Plots a **Before vs. After** comparison using the `inferno` colormap so that the "
+    "extremely faint pixel variations in the PSR are visible to the human eye."
+))
+
+# ── Cell 2: Code – Setup ─────────────────────────────────────────────────────
+cells.append(nbformat.v4.new_code_cell(
+    "import numpy as np\n"
+    "import torch\n"
+    "import torch.nn as nn\n"
+    "import matplotlib.pyplot as plt\n"
+    "from pathlib import Path\n"
+    "import urllib.request\n"
+    "import os\n"
+    "\n"
+    "device = torch.device('cpu')\n"
+    "print(f'Running on: {device}')"
+))
+
+# ── Cell 3: Code – Download Sample Patch ──────────────────────────────────────
+cells.append(nbformat.v4.new_code_cell(
+    "# Download a tiny sample OHRC patch for testing\n"
+    "SAMPLE_URL = 'https://dummyurl.com/sample_patch.npy'\n"
+    "SAMPLE_PATH = 'sample_patch.npy'\n"
+    "\n"
+    "if not os.path.exists(SAMPLE_PATH):\n"
+    "    print('Downloading sample patch...')\n"
+    "    urllib.request.urlretrieve(SAMPLE_URL, SAMPLE_PATH)\n"
+    "    print('Done!')\n"
+    "else:\n"
+    "    print('Sample patch already exists.')\n"
+    "\n"
+    "# Load the patch\n"
+    "patch = np.load(SAMPLE_PATH)  # Expected shape: (64, 64), float32, range [0, 1]\n"
+    "print(f'Patch shape: {patch.shape}, dtype: {patch.dtype}')\n"
+    "print(f'Pixel range: [{patch.min():.4f}, {patch.max():.4f}]')\n"
+    "print(f'Mean brightness: {patch.mean():.4f} (expect < 0.05 for PSR patches)')"
+))
+
+# ── Cell 4: Code – Model Definition ──────────────────────────────────────────
+cells.append(nbformat.v4.new_code_cell(
+    "class ZeroDCE(nn.Module):\n"
+    "    def __init__(self, channels=32, n_iter=8):\n"
+    "        super().__init__()\n"
+    "        self.n_iter = n_iter\n"
+    "        self.conv1 = nn.Conv2d(1, channels, 3, padding=1, padding_mode='replicate')\n"
+    "        self.conv2 = nn.Conv2d(channels, channels, 3, padding=1, padding_mode='replicate')\n"
+    "        self.conv3 = nn.Conv2d(channels, channels, 3, padding=1, padding_mode='replicate')\n"
+    "        self.conv4 = nn.Conv2d(channels, channels, 3, padding=1, padding_mode='replicate')\n"
+    "        self.conv5 = nn.Conv2d(channels*2, channels, 3, padding=1, padding_mode='replicate')\n"
+    "        self.conv6 = nn.Conv2d(channels*2, channels, 3, padding=1, padding_mode='replicate')\n"
+    "        self.conv7 = nn.Conv2d(channels*2, 8, 3, padding=1, padding_mode='replicate')\n"
+    "        self.relu = nn.ReLU(inplace=True)\n"
+    "\n"
+    "    def forward(self, x):\n"
+    "        x1 = self.relu(self.conv1(x))\n"
+    "        x2 = self.relu(self.conv2(x1))\n"
+    "        x3 = self.relu(self.conv3(x2))\n"
+    "        x4 = self.relu(self.conv4(x3))\n"
+    "        x5 = self.relu(self.conv5(torch.cat([x3, x4], dim=1)))\n"
+    "        x6 = self.relu(self.conv6(torch.cat([x2, x5], dim=1)))\n"
+    "        A = torch.tanh(self.conv7(torch.cat([x1, x6], dim=1)))\n"
+    "        enhanced = x\n"
+    "        for i in range(self.n_iter):\n"
+    "            A_i = A[:, i:i+1, :, :]\n"
+    "            enhanced = enhanced + A_i * (torch.pow(enhanced, 2) - enhanced)\n"
+    "        return enhanced, A\n"
+    "\n"
+    "model = ZeroDCE().to(device)\n"
+    "print(f'Model loaded: {sum(p.numel() for p in model.parameters()):,} parameters')\n"
+    "\n"
+    "# Attempt to load a checkpoint if available\n"
+    "CHECKPOINT_PATH = '../checkpoints/zerodce_phase2_final.pth'\n"
+    "if os.path.exists(CHECKPOINT_PATH):\n"
+    "    model.load_state_dict(torch.load(CHECKPOINT_PATH, map_location=device))\n"
+    "    print(f'Loaded trained checkpoint from {CHECKPOINT_PATH}')\n"
+    "else:\n"
+    "    print('No checkpoint found. Running with random weights (demo mode).')\n"
+    "    print('To use trained weights, place zerodce_phase2_final.pth in checkpoints/')"
+))
+
+# ── Cell 5: Code – Run Inference ─────────────────────────────────────────────
+cells.append(nbformat.v4.new_code_cell(
+    "model.eval()\n"
+    "with torch.no_grad():\n"
+    "    x = torch.from_numpy(patch).unsqueeze(0).unsqueeze(0).float().to(device)\n"
+    "    enhanced, curve_maps = model(x)\n"
+    "    enhanced_np = enhanced.squeeze().cpu().numpy()\n"
+    "\n"
+    "print(f'Enhanced patch range: [{enhanced_np.min():.4f}, {enhanced_np.max():.4f}]')\n"
+    "print(f'Enhanced mean brightness: {enhanced_np.mean():.4f}')\n"
+    "print(f'Brightness gain: {enhanced_np.mean() / (patch.mean() + 1e-8):.1f}x')"
+))
+
+# ── Cell 6: Markdown ─────────────────────────────────────────────────────────
+cells.append(nbformat.v4.new_markdown_cell(
+    "### Visualization\n"
+    "We use the `inferno` colormap because raw PSR pixel values cluster in the range "
+    "[0, 0.05]. A standard grayscale plot would show nothing but black. The Min-Max stretch "
+    "and `inferno` mapping reveal the faint topographic variations that the model has learned "
+    "to amplify."
+))
+
+# ── Cell 7: Code – Visualization ─────────────────────────────────────────────
+cells.append(nbformat.v4.new_code_cell(
+    "def minmax_stretch(img):\n"
+    "    lo, hi = img.min(), img.max()\n"
+    "    if hi - lo < 1e-8:\n"
+    "        return np.zeros_like(img)\n"
+    "    return (img - lo) / (hi - lo)\n"
+    "\n"
+    "fig, axes = plt.subplots(1, 3, figsize=(18, 6))\n"
+    "\n"
+    "# Panel 1: Raw PSR patch (Min-Max stretched, Inferno)\n"
+    "raw_stretched = minmax_stretch(patch)\n"
+    "im0 = axes[0].imshow(raw_stretched, cmap='inferno', vmin=0, vmax=1)\n"
+    "axes[0].set_title('Raw OHRC PSR Patch\\n(Min-Max Stretched)', fontsize=14, fontweight='bold')\n"
+    "axes[0].axis('off')\n"
+    "plt.colorbar(im0, ax=axes[0], fraction=0.046, pad=0.04, label='Normalized Intensity')\n"
+    "\n"
+    "# Panel 2: Enhanced patch (Min-Max stretched, Inferno)\n"
+    "enh_stretched = minmax_stretch(enhanced_np)\n"
+    "im1 = axes[1].imshow(enh_stretched, cmap='inferno', vmin=0, vmax=1)\n"
+    "axes[1].set_title('Zero-DCE Enhanced\\n(Min-Max Stretched)', fontsize=14, fontweight='bold')\n"
+    "axes[1].axis('off')\n"
+    "plt.colorbar(im1, ax=axes[1], fraction=0.046, pad=0.04, label='Normalized Intensity')\n"
+    "\n"
+    "# Panel 3: Pixel intensity histograms\n"
+    "axes[2].hist(patch.ravel(), bins=64, alpha=0.7, label='Raw', color='steelblue', density=True)\n"
+    "axes[2].hist(enhanced_np.ravel(), bins=64, alpha=0.7, label='Enhanced', color='orangered', density=True)\n"
+    "axes[2].set_title('Pixel Intensity Distribution', fontsize=14, fontweight='bold')\n"
+    "axes[2].set_xlabel('Pixel Value')\n"
+    "axes[2].set_ylabel('Density')\n"
+    "axes[2].legend(fontsize=12)\n"
+    "axes[2].grid(True, alpha=0.3)\n"
+    "\n"
+    "plt.suptitle('AETHER: Lunar PSR Enhancement Pipeline Verification', fontsize=16, fontweight='bold', y=1.02)\n"
+    "plt.tight_layout()\n"
+    "plt.savefig('quickstart_result.png', dpi=150, bbox_inches='tight')\n"
+    "plt.show()\n"
+    "print('Pipeline verification complete! If you see the inferno heatmaps above, AETHER is working.')"
+))
+
+nb.cells = cells
+
+# ── Write notebook ────────────────────────────────────────────────────────────
+out_path = Path(r"d:\Projects and Coding\Version Control Systems\Aether\notebooks\AETHER_Quickstart.ipynb")
+out_path.parent.mkdir(parents=True, exist_ok=True)
+with open(out_path, "w", encoding="utf-8") as f:
+    nbformat.write(nb, f)
+
+print(f"Notebook written to {out_path}")

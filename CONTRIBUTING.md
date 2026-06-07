@@ -14,7 +14,7 @@ The core maintainers are currently preparing a formal scientific research paper 
 * **Repository Recognition:** Contributors who make significant, impactful engineering contributions will be explicitly recognized in the project's `README.md` contributors section.
 
 ### 🛑 The Research Red Line
-Do not alter the fundamental mathematical architecture, loss functions, or network topology of the GAN/SSL models in the `src/models/` directory. These files are strictly locked for our ongoing research, and any Pull Requests modifying the core math will be rejected. 
+Do not alter the fundamental mathematical architecture, loss functions, or network topology of the Zero-DCE models in the `src/models/` directory. These files are strictly locked for our ongoing research, and any Pull Requests modifying the core math will be rejected. 
 
 *(Note: We welcome theoretical suggestions via GitHub Issues. However, even if a suggested issue is highly impactful and implemented by the core team, it does not grant the suggester academic co-authorship).*
 
@@ -50,6 +50,33 @@ We have a vast amount of lunar data but limited compute power. We need contribut
 * **GIS Integration & Map Stitching:** AETHER outputs enhanced image strips. We need scripts using `GDAL` or `Rasterio` to read the embedded spatial metadata (`geometry.csv`) and stitch these overlapping tiles back into a single, cohesive GeoTIFF map.
 * **Code Quality & Testing:** Adding strict Python type hinting, writing Google-style docstrings, and building unit tests using `pytest` for our data ingestion functions.
 * **Optional C++ Optimizations:** If you are highly skilled in C++, we welcome PRs that port heavy bottleneck functions (like geospatial tensor stacking) to `libtorch` or C++ OpenCV.
+
+---
+
+## 🛑 Zero-Tolerance AI Copy-Paste Policy
+
+> **This is not optional. Violations result in immediate PR closure.**
+
+We fully encourage contributors to use Large Language Models (LLMs) such as ChatGPT, Gemini, Claude, or GitHub Copilot as **learning and debugging tools**. However, this project involves real scientific data from an active space mission, and every line of code has consequences for data integrity.
+
+### What is ALLOWED:
+- Using an LLM to **understand** how `pds4-tools` parses XML metadata.
+- Asking an LLM to **explain** a PyTorch loss function or debug a syntax error.
+- Using Copilot for **autocompletion** of boilerplate code you fully understand.
+
+### What is STRICTLY FORBIDDEN:
+- Blindly copy-pasting an entire PR from an LLM without understanding the mathematical or structural context.
+- Submitting code that references **hallucinated libraries** (e.g., `from lunar_enhance import PSRProcessor` — this does not exist).
+- Submitting code with **broken logical loops**, off-by-one errors in sliding window implementations, or incorrect tensor reshaping that would silently corrupt scientific data.
+- Submitting obvious **AI boilerplate** (e.g., `# TODO: Implement this function` repeated across files, generic docstrings that don't match the actual function signature).
+
+### Consequences:
+PRs that exhibit clear signs of unreviewed AI generation will be:
+1. **Immediately closed** without merge.
+2. Labeled as `invalid`.
+3. The contributor will receive a warning. Repeat offenders will be blocked from the repository.
+
+**Bottom line:** Use AI to learn. Don't let AI submit your homework.
 
 ---
 
