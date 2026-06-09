@@ -19,7 +19,7 @@ Reference:
     for Low-Light Image Enhancement." CVPR 2020.
     plan.pdf, Chapter 5.3
 """
-
+from typing import Tuple, Optional, Dict, Any
 import torch
 import torch.nn as nn
 
@@ -39,11 +39,11 @@ class ZeroDCE(nn.Module):
     """
 
     def __init__(
-        self,
-        n_iter: int = 8,
-        in_channels: int = 1,
-        base_channels: int = 32,
-    ):
+            self,
+            n_iter: int = 8,
+            in_channels: int = 1,
+            base_channels: int = 32,
+    ) -> None:
         super().__init__()
         self.n_iter = n_iter
         ch = base_channels
@@ -72,7 +72,7 @@ class ZeroDCE(nn.Module):
         # Initialize weights
         self._init_weights()
 
-    def _init_weights(self):
+    def _init_weights(self) -> None:
         """Xavier initialization for stable training."""
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
@@ -80,7 +80,12 @@ class ZeroDCE(nn.Module):
                 if m.bias is not None:
                     nn.init.zeros_(m.bias)
 
-    def forward(self, x: torch.Tensor) -> tuple:
+    
+
+    def forward(
+           self,
+           x: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Forward pass: estimate curve maps and apply enhancement.
 
         Args:
@@ -122,7 +127,10 @@ class ZeroDCE(nn.Module):
         return sum(p.numel() for p in self.parameters() if p.requires_grad)
 
 
-def build_zero_dce(config: dict = None) -> ZeroDCE:
+
+def build_zero_dce(
+    config: Optional[Dict[str, Any]] = None
+) -> ZeroDCE:
     """Factory function to build Zero-DCE from config dict.
 
     Args:
